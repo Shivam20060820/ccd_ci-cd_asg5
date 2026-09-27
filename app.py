@@ -2,7 +2,7 @@ from flask import Flask
 app = Flask(__name__)
 @app.route("/")
 def home():
-    return "Welcome to Cloud Computing Lab"
+    return "I've change the code- Shivam Shirsat here"
 @app.route("/student")
 def student():
     return {"name": "Student", "course": "Cloud Computing and DevOps"}
