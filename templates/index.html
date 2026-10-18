@@ -285,7 +285,7 @@
         <header>
             <div class="badge-live">
                 <span class="pulse-dot"></span>
-                <span>Container Live on Kubernetes &bull; t2.micro</span>
+                <span>Container Live on Kubernetes &bull; Pod: {{ pod_name }}</span>
             </div>
             <h1>Cloud Computing &amp; DevOps Pipeline</h1>
             <p class="subtitle">Barebone Microservice running on AWS EC2 with Jenkins CI/CD, Docker containerization &amp; Minikube orchestration.</p>
@@ -306,49 +306,72 @@
                 <div class="tech-card">
                     <div class="icon">☁️</div>
                     <h3>AWS EC2</h3>
-                    <p>Host: t2.micro (1 vCPU, 1 GB RAM) Free Tier</p>
+                    <p>Host: Ubuntu Linux Cloud Instance</p>
                 </div>
                 <div class="tech-card">
                     <div class="icon">🐳</div>
                     <h3>Docker</h3>
-                    <p>Image: cloud-app:latest (python-slim, ~120MB)</p>
+                    <p>Image: cloud-app:latest (python:3.11-slim)</p>
                 </div>
                 <div class="tech-card">
                     <div class="icon">☸️</div>
                     <h3>Kubernetes</h3>
-                    <p>Minikube Pod &bull; NodePort :30000</p>
+                    <p>Pod: <code>{{ pod_name }}</code><br>IP: <code>{{ pod_ip }}</code> &bull; NodePort :30000</p>
                 </div>
                 <div class="tech-card">
                     <div class="icon">🔄</div>
                     <h3>Jenkins CI/CD</h3>
-                    <p>Automated build triggered via GitHub Webhook</p>
+                    <p>Automated Pipeline &bull; GitHub Webhook</p>
                 </div>
             </div>
 
             <div class="interactive-section">
                 <div class="interactive-header">
-                    <h3>⚡ Live API &amp; Health Probe</h3>
+                    <h3>⚡ Live Services Inspection &amp; Telemetry</h3>
                     <div class="button-group">
-                        <button class="btn-primary" id="btnStudent" onclick="fetchStudent()">
-                            <span>👤 Fetch Student Data</span>
+                        <button class="btn-primary" id="btnTelemetry" onclick="fetchTelemetry()">
+                            <span>☸️ Inspect Kubernetes &amp; Docker Status</span>
+                        </button>
+                        <button class="btn-secondary" id="btnStudent" onclick="fetchStudent()">
+                            <span>👤 Student Info</span>
                         </button>
                         <button class="btn-secondary" id="btnHealth" onclick="fetchHealth()">
-                            <span>💚 Test /health Probe</span>
+                            <span>💚 Health Probe</span>
                         </button>
                     </div>
                 </div>
                 <div class="terminal-box" id="terminalOutput">
-                    <pre>// Click a button above to query live endpoints...</pre>
+                    <pre>// Click "Inspect Kubernetes & Docker Status" to verify live container telemetry...</pre>
                 </div>
             </div>
         </div>
 
         <footer>
-            Built with lightweight Flask for <span>AWS EC2 t2.micro</span> &bull; Auto-deployed via <span>GitHub Webhook + Jenkins</span>
+            Built with lightweight Flask &bull; Orchestrated via <span>Kubernetes / Minikube</span> &bull; Deployed with <span>Jenkins CI/CD</span>
         </footer>
     </div>
 
     <script>
+        async function fetchTelemetry() {
+            const out = document.getElementById('terminalOutput');
+            out.innerHTML = '<pre>Querying live container runtime and cluster status...</pre>';
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                out.innerHTML = `<pre style="color: #67e8f9;">[KUBERNETES & DOCKER TELEMETRY VERIFIED]
+• Pod Name:           ${data.kubernetes_pod}
+• Pod Cluster IP:     ${data.kubernetes_pod_ip}
+• Container Runtime:  ${data.container_runtime}
+• Orchestrator:       ${data.orchestration}
+• Cloud Provider:     ${data.cloud_provider}
+• NodePort Exposed:   :${data.service_port}
+• Server Uptime:      ${data.uptime_seconds}s
+• Health Check:       ${data.status} (200 OK)</pre>`;
+            } catch (err) {
+                out.innerHTML = `<pre style="color: #f87171;">Telemetry failed: ${err.message}</pre>`;
+            }
+        }
+
         async function fetchStudent() {
             const out = document.getElementById('terminalOutput');
             out.innerHTML = '<pre>Fetching GET /student ...</pre>';
