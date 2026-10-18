@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps CI/CD & Kubernetes Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --card-bg: rgba(23, 31, 50, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.1) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-emerald);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hero-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            margin-bottom: 2rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .hero-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .author-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .author-info h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .author-info p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .version-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.65rem;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            border-radius: 6px;
+        }
+
+        .grid-tech {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tech-card {
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(6, 182, 212, 0.4);
+        }
+
+        .tech-card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tech-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .tech-card p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .interactive-section {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .interactive-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .interactive-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.55rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .terminal-box {
+            background: #090d16;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.825rem;
+            color: #a7f3d0;
+            overflow-x: auto;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-box pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.825rem;
+            padding: 1.5rem 0;
+        }
+
+        footer span {
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge-live">
+                <span class="pulse-dot"></span>
+                <span>Container Live on Kubernetes &bull; t2.micro</span>
+            </div>
+            <h1>Cloud Computing &amp; DevOps Pipeline</h1>
+            <p class="subtitle">Barebone Microservice running on AWS EC2 with Jenkins CI/CD, Docker containerization &amp; Minikube orchestration.</p>
+        </header>
+
+        <div class="hero-card">
+            <div class="author-banner">
+                <div class="author-info">
+                    <h2>{{ author }}</h2>
+                    <p>{{ course }} &bull; Mini Project</p>
+                </div>
+                <div class="version-tag" id="deploymentVersion">
+                    Build: {{ app_version }}
+                </div>
+            </div>
+
+            <div class="grid-tech">
+                <div class="tech-card">
+                    <div class="icon">☁️</div>
+                    <h3>AWS EC2</h3>
+                    <p>Host: t2.micro (1 vCPU, 1 GB RAM) Free Tier</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">🐳</div>
+                    <h3>Docker</h3>
+                    <p>Image: cloud-app:latest (python-slim, ~120MB)</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">☸️</div>
+                    <h3>Kubernetes</h3>
+                    <p>Minikube Pod &bull; NodePort :30000</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">🔄</div>
+                    <h3>Jenkins CI/CD</h3>
+                    <p>Automated build triggered via GitHub Webhook</p>
+                </div>
+            </div>
+
+            <div class="interactive-section">
+                <div class="interactive-header">
+                    <h3>⚡ Live API &amp; Health Probe</h3>
+                    <div class="button-group">
+                        <button class="btn-primary" id="btnStudent" onclick="fetchStudent()">
+                            <span>👤 Fetch Student Data</span>
+                        </button>
+                        <button class="btn-secondary" id="btnHealth" onclick="fetchHealth()">
+                            <span>💚 Test /health Probe</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="terminal-box" id="terminalOutput">
+                    <pre>// Click a button above to query live endpoints...</pre>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Built with lightweight Flask for <span>AWS EC2 t2.micro</span> &bull; Auto-deployed via <span>GitHub Webhook + Jenkins</span>
+        </footer>
+    </div>
+
+    <script>
+        async function fetchStudent() {
+            const out = document.getElementById('terminalOutput');
+            out.innerHTML = '<pre>Fetching GET /student ...</pre>';
+            try {
+                const res = await fetch('/student');
+                const data = await res.json();
+                out.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (err) {
+                out.innerHTML = `<pre style="color: #f87171;">Error fetching /student: ${err.message}</pre>`;
+            }
+        }
+
+        async function fetchHealth() {
+            const out = document.getElementById('terminalOutput');
+            const startTime = performance.now();
+            out.innerHTML = '<pre>Pinging GET /health ...</pre>';
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                const latency = Math.round(performance.now() - startTime);
+                out.innerHTML = `<pre>HTTP 200 OK (${latency}ms latency)\n${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (err) {
+                out.innerHTML = `<pre style="color: #f87171;">Health check failed: ${err.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>
