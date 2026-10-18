@@ -63,8 +63,10 @@ install_prerequisites() {
         echo -e "${GREEN}>> Docker is already installed.${NC}"
     fi
 
-    # Ensure docker daemon is active
+    # Ensure docker daemon is active and socket is writable by current user
     sudo systemctl start docker || true
+    sudo chmod 666 /var/run/docker.sock || true
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
 
     # 2.2 Kubectl
     if ! command -v kubectl &> /dev/null; then
@@ -100,6 +102,9 @@ install_prerequisites() {
 start_minikube() {
     echo -e "\n${BLUE}[3/5] Starting / Checking Minikube Cluster...${NC}"
     
+    # Ensure Docker socket permissions are open for the current user
+    sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
+
     # Check if minikube is already running healthy
     if kubectl get nodes 2>/dev/null | grep -q "Ready"; then
         echo -e "${GREEN}>> Kubernetes cluster is already running and Ready.${NC}"
@@ -130,8 +135,8 @@ start_minikube() {
         sudo chown -R "$USER":"$USER" "$HOME/.kube" "$HOME/.minikube" 2>/dev/null || true
     else
         echo -e "${GREEN}>> Sufficient resources found (${TOTAL_CPUS} CPUs, ${TOTAL_MEM_MB}MB RAM). Starting standard Minikube...${NC}"
-        minikube start --driver=docker --memory=2048m --cpus=2 || \
-        sudo -E minikube start --driver=docker --memory=2048m --cpus=2
+        # Start as regular user with docker driver
+        minikube start --driver=docker --memory=2048m --cpus=2
     fi
 
     # Ensure kubectl context is set
