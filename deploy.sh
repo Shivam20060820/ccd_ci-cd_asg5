@@ -211,8 +211,10 @@ deploy_k8s() {
 # ------------------------------------------------------------------------------
 install_jenkins() {
     echo -e "\n${BLUE}[Optional] Installing Jenkins on AWS EC2...${NC}"
+    # Remove Java 17 so Ubuntu defaults cleanly to Java 21
+    sudo apt-get purge -y 'openjdk-17*' 2>/dev/null || true
     sudo apt-get update -y
-    sudo apt-get install -y fontconfig openjdk-21-jre
+    sudo apt-get install -y fontconfig openjdk-21-jdk
     
     # Download current Jenkins GPG signing key
     curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null || \
@@ -222,8 +224,6 @@ install_jenkins() {
     
     sudo apt-get update -y
     sudo apt-get install -y jenkins
-    sudo systemctl start jenkins
-    sudo systemctl enable jenkins
     
     # Grant permissions to jenkins user
     sudo usermod -aG docker jenkins || true
@@ -232,14 +232,22 @@ install_jenkins() {
         sudo cp -r "$HOME/.kube" /var/lib/jenkins/
         sudo chown -R jenkins:jenkins /var/lib/jenkins/.kube
     fi
+
+    # Reset systemd failure rate limit and start
+    sudo systemctl reset-failed jenkins 2>/dev/null || true
+    sudo systemctl daemon-reload
     sudo systemctl restart jenkins
+    sudo systemctl enable jenkins
     
+    echo -e "${CYAN}>> Waiting 20 seconds for Jenkins Java JVM to initialize...${NC}"
+    sleep 20
+
     PUBLIC_IP=$(curl -s -m 5 https://api.ipify.org || echo "<YOUR-EC2-PUBLIC-IP>")
     INITIAL_PWD=$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword 2>/dev/null || echo "Run: sudo cat /var/lib/jenkins/secrets/initialAdminPassword")
     
     echo -e "${GREEN}>> Jenkins installed and running!${NC}"
     echo -e "${YELLOW}Jenkins URL: http://${PUBLIC_IP}:8080${NC}"
-    echo -e "${YELLOW}Initial Admin Password: ${INITIAL_PWD}${NC}"
+    echo -e "${GREEN}Initial Admin Password: ${INITIAL_PWD}${NC}"
 }
 
 # ------------------------------------------------------------------------------
