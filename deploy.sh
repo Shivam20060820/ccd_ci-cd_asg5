@@ -87,6 +87,11 @@ install_prerequisites() {
     else
         echo -e "${GREEN}>> Minikube is already installed.${NC}"
     fi
+    # 2.4 conntrack & crictl (required for driver=none on cloud VMs)
+    if ! command -v conntrack &> /dev/null; then
+        echo -e "${YELLOW}>> Installing conntrack...${NC}"
+        sudo apt-get install -y conntrack
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -95,9 +100,9 @@ install_prerequisites() {
 start_minikube() {
     echo -e "\n${BLUE}[3/5] Starting / Checking Minikube Cluster...${NC}"
     
-    # Check if minikube is already running
-    if minikube status 2>/dev/null | grep -q "Running"; then
-        echo -e "${GREEN}>> Minikube is already running.${NC}"
+    # Check if minikube is already running healthy
+    if kubectl get nodes 2>/dev/null | grep -q "Ready"; then
+        echo -e "${GREEN}>> Kubernetes cluster is already running and Ready.${NC}"
         return 0
     fi
 
@@ -107,21 +112,20 @@ start_minikube() {
     echo -e "${CYAN}>> Detected: ${TOTAL_CPUS} CPU(s) and ${TOTAL_MEM_MB} MB RAM.${NC}"
 
     if [ "$TOTAL_CPUS" -lt 2 ] || [ "$TOTAL_MEM_MB" -lt 1800 ]; then
-        echo -e "${YELLOW}>> Low resources detected (e.g. t2.micro).${NC}"
-        echo -e "${YELLOW}>> Bypassing Kubernetes CPU and Memory preflight checks...${NC}"
-        # Allocate 800MB or 80% of total mem, 1 CPU, and ignore preflight checks
-        ALLOC_MEM=$(( TOTAL_MEM_MB * 80 / 100 ))
-        [ "$ALLOC_MEM" -gt 900 ] && ALLOC_MEM=900
-        minikube start --driver=docker \
-            --memory="${ALLOC_MEM}m" \
-            --cpus=1 \
-            --force \
-            --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem || \
-        sudo -E minikube start --driver=docker \
-            --memory="${ALLOC_MEM}m" \
-            --cpus=1 \
-            --force \
-            --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem
+        echo -e "${YELLOW}>> Single core / low RAM detected (t2.micro).${NC}"
+        echo -e "${YELLOW}>> Cleaning any previous corrupted state...${NC}"
+        sudo minikube delete --all --purge 2>/dev/null || true
+        sudo rm -rf /root/.minikube "$HOME/.minikube" 2>/dev/null || true
+
+        echo -e "${YELLOW}>> Starting Minikube using cloud VM native driver (--driver=none)...${NC}"
+        export CHANGE_MINIKUBE_NONE_USER=true
+        sudo -E minikube start \
+            --driver=none \
+            --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem \
+            --force
+        
+        # Fix permissions for current user
+        sudo chown -R "$USER":"$USER" "$HOME/.minikube" "$HOME/.kube" 2>/dev/null || true
     else
         echo -e "${GREEN}>> Sufficient resources found (${TOTAL_CPUS} CPUs, ${TOTAL_MEM_MB}MB RAM). Starting standard Minikube...${NC}"
         minikube start --driver=docker --memory=2048m --cpus=2 || \
@@ -140,9 +144,14 @@ build_and_load() {
     echo -e "${CYAN}>> Running: docker build -t ${APP_NAME}:${IMAGE_TAG} .${NC}"
     docker build -t ${APP_NAME}:${IMAGE_TAG} . || sudo docker build -t ${APP_NAME}:${IMAGE_TAG} .
     
-    echo -e "${CYAN}>> Loading image into Minikube cluster registry...${NC}"
-    minikube image load ${APP_NAME}:${IMAGE_TAG} || sudo minikube image load ${APP_NAME}:${IMAGE_TAG}
-    echo -e "${GREEN}>> Image ${APP_NAME}:${IMAGE_TAG} loaded into Minikube.${NC}"
+    # If using docker driver, load image. If using driver=none, image is already available in host Docker!
+    DRIVER_IN_USE=$(minikube profile list -o json 2>/dev/null | grep -o '"Driver": "[^"]*"' | head -1 | cut -d'"' -f4 || echo "docker")
+    if [ "$DRIVER_IN_USE" != "none" ]; then
+        echo -e "${CYAN}>> Loading image into Minikube cluster registry...${NC}"
+        minikube image load ${APP_NAME}:${IMAGE_TAG} || sudo minikube image load ${APP_NAME}:${IMAGE_TAG} || true
+    else
+        echo -e "${GREEN}>> Using driver=none: Image is directly available to Kubernetes!${NC}"
+    fi
 }
 
 # ------------------------------------------------------------------------------
