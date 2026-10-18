@@ -177,9 +177,11 @@ deploy_k8s() {
     echo -e "${CYAN}>> Rolling out update to deployment/${APP_NAME}...${NC}"
     kubectl rollout restart deployment/${APP_NAME} || sudo kubectl rollout restart deployment/${APP_NAME}
     
-    echo -e "${CYAN}>> Waiting for Pod to be ready (timeout: 90s)...${NC}"
-    kubectl rollout status deployment/${APP_NAME} --timeout=90s || sudo kubectl rollout status deployment/${APP_NAME} --timeout=90s
-    
+    echo -e "${CYAN}>> Exposing service port 30000 on host (0.0.0.0)...${NC}"
+    pkill -f "port-forward.*30000" 2>/dev/null || true
+    nohup kubectl port-forward --address 0.0.0.0 svc/cloud-app-service 30000:5000 >/dev/null 2>&1 &
+    sleep 2
+
     echo -e "\n${GREEN}=================================================================${NC}"
     echo -e "${GREEN}               🎉 DEPLOYMENT SUCCESSFUL!                         ${NC}"
     echo -e "${GREEN}=================================================================${NC}"
