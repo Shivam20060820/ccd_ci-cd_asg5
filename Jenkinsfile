@@ -29,7 +29,7 @@ pipeline {
         stage('3. Load Image to Minikube') {
             steps {
                 echo '=== Stage 3: Transferring image into Minikube cluster ==='
-                sh 'minikube image load ${APP_NAME}:${IMAGE_TAG}'
+                sh 'minikube image load ${APP_NAME}:${IMAGE_TAG} || true'
             }
         }
 
@@ -39,6 +39,8 @@ pipeline {
                 sh 'kubectl apply -f k8s.yaml'
                 sh 'kubectl rollout restart deployment/${APP_NAME}'
                 sh 'kubectl rollout status deployment/${APP_NAME} --timeout=90s'
+                sh 'pkill -f "port-forward.*30000" || true'
+                sh 'nohup kubectl port-forward --address 0.0.0.0 svc/cloud-app-service 30000:5000 >/dev/null 2>&1 &'
             }
         }
 
