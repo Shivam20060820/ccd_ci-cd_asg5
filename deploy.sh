@@ -212,7 +212,7 @@ deploy_k8s() {
 install_jenkins() {
     echo -e "\n${BLUE}[Optional] Installing Jenkins on AWS EC2...${NC}"
     sudo apt-get update -y
-    sudo apt-get install -y fontconfig openjdk-17-jre
+    sudo apt-get install -y fontconfig openjdk-21-jre
     
     # Download current Jenkins GPG signing key
     curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null || \
