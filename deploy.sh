@@ -124,13 +124,20 @@ start_minikube() {
             --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem \
             --force
         
-        # Fix permissions for current user
-        sudo chown -R "$USER":"$USER" "$HOME/.minikube" "$HOME/.kube" 2>/dev/null || true
+        # Fix permissions and copy kubeconfig for regular user
+        mkdir -p "$HOME/.kube"
+        sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config" 2>/dev/null || sudo cp -f /root/.kube/config "$HOME/.kube/config" 2>/dev/null || true
+        sudo chown -R "$USER":"$USER" "$HOME/.kube" "$HOME/.minikube" 2>/dev/null || true
     else
         echo -e "${GREEN}>> Sufficient resources found (${TOTAL_CPUS} CPUs, ${TOTAL_MEM_MB}MB RAM). Starting standard Minikube...${NC}"
         minikube start --driver=docker --memory=2048m --cpus=2 || \
         sudo -E minikube start --driver=docker --memory=2048m --cpus=2
     fi
+
+    # Ensure kubectl context is set
+    mkdir -p "$HOME/.kube"
+    sudo cp -f /root/.kube/config "$HOME/.kube/config" 2>/dev/null || sudo cp -f /etc/kubernetes/admin.conf "$HOME/.kube/config" 2>/dev/null || true
+    sudo chown -R "$USER":"$USER" "$HOME/.kube" 2>/dev/null || true
 
     echo -e "${GREEN}>> Minikube cluster is up and ready!${NC}"
 }
