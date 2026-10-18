@@ -90,20 +90,45 @@ install_prerequisites() {
 }
 
 # ------------------------------------------------------------------------------
-# 3. START MINIKUBE (Optimized for t2.micro)
+# 3. START MINIKUBE (Supports both t2.micro & t2.medium/t3.medium)
 # ------------------------------------------------------------------------------
 start_minikube() {
     echo -e "\n${BLUE}[3/5] Starting / Checking Minikube Cluster...${NC}"
     
     # Check if minikube is already running
-    if minikube status | grep -q "Running"; then
+    if minikube status 2>/dev/null | grep -q "Running"; then
         echo -e "${GREEN}>> Minikube is already running.${NC}"
-    else
-        echo -e "${YELLOW}>> Starting Minikube (configured with 1400MB memory & 1 CPU)...${NC}"
-        # If user is in docker group or use sudo if needed
-        minikube start --driver=docker --memory=1400m --cpus=1 || sudo -E minikube start --driver=docker --memory=1400m --cpus=1 --force
-        echo -e "${GREEN}>> Minikube cluster is up and ready!${NC}"
+        return 0
     fi
+
+    TOTAL_CPUS=$(nproc)
+    TOTAL_MEM_MB=$(free -m | awk '/Mem:/ {print $2}')
+    
+    echo -e "${CYAN}>> Detected: ${TOTAL_CPUS} CPU(s) and ${TOTAL_MEM_MB} MB RAM.${NC}"
+
+    if [ "$TOTAL_CPUS" -lt 2 ] || [ "$TOTAL_MEM_MB" -lt 1800 ]; then
+        echo -e "${YELLOW}>> Low resources detected (e.g. t2.micro).${NC}"
+        echo -e "${YELLOW}>> Bypassing Kubernetes CPU and Memory preflight checks...${NC}"
+        # Allocate 800MB or 80% of total mem, 1 CPU, and ignore preflight checks
+        ALLOC_MEM=$(( TOTAL_MEM_MB * 80 / 100 ))
+        [ "$ALLOC_MEM" -gt 900 ] && ALLOC_MEM=900
+        minikube start --driver=docker \
+            --memory="${ALLOC_MEM}m" \
+            --cpus=1 \
+            --force \
+            --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem || \
+        sudo -E minikube start --driver=docker \
+            --memory="${ALLOC_MEM}m" \
+            --cpus=1 \
+            --force \
+            --extra-config=kubeadm.ignore-preflight-errors=NumCPU,Mem
+    else
+        echo -e "${GREEN}>> Sufficient resources found (${TOTAL_CPUS} CPUs, ${TOTAL_MEM_MB}MB RAM). Starting standard Minikube...${NC}"
+        minikube start --driver=docker --memory=2048m --cpus=2 || \
+        sudo -E minikube start --driver=docker --memory=2048m --cpus=2
+    fi
+
+    echo -e "${GREEN}>> Minikube cluster is up and ready!${NC}"
 }
 
 # ------------------------------------------------------------------------------
