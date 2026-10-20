@@ -14,7 +14,7 @@ pipeline {
         stage('1. Checkout Code') {
             steps {
                 echo '=== Stage 1: Pulling latest code from Git ==='
-                git branch: 'lt', url: 'https://github.com/Shivam20060820/ccd_ci-cd_asg5.git'
+                git branch: 'main', url: 'https://github.com/Shivam20060820/ccd_ci-cd_asg5.git'
             }
         }
 
